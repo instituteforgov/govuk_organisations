@@ -11,7 +11,7 @@ jobs:
       uses: actions/checkout@v2
     - name: Fetch latest data from the API endpoint
       run: |-
-        curl -s "https://www.gov.uk/api/organisations?page=1" | jq '.results' > headlines.json
+        curl -s "https://www.gov.uk/api/organisations?page=1" | jq '.results' > organisations.json
     - name: Commit and push if the data has changed
       run: |-
         git config user.name "Automated"
