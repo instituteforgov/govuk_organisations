@@ -1,22 +1,31 @@
+name: Extract gov.uk organisations data
+
 on:
   push:
   workflow_dispatch:
   schedule:
-    - cron:  '6,26,46 * * * *' # every twenty minutes
+    - cron:  '0 6 1 * *'    # At 06:00 UTC on day-of-month 1
+
 jobs:
-  scheduled:
+  scrape-govuk-organisations:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Check out this repo
-      uses: actions/checkout@v2
-    - name: Fetch latest data from the API endpoint
-      run: |-
-        curl -s "https://www.gov.uk/api/organisations?page=1" | jq '.results' > organisations.json
-    - name: Commit and push if the data has changed
-      run: |-
-        git config user.name "Automated"
-        git config user.email "actions@users.noreply.github.com"
-        git add -A
-        timestamp=$(date -u)
-        git commit -m "Latest data: ${timestamp}" || exit 0
-        git push
+      - name: Check out repo
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: '3.9'
+      - name: Install requirements
+        run: pip install -r requirements.txt
+      - name: Run scraper
+        run: python scraper.py
+      - name: Commit and push if the data has changed
+        run: |-
+          git config user.name "Automated"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          timestamp=$(date -u)
+          git commit -m "Latest data: ${timestamp}" || exit 0
+          git push
