@@ -194,4 +194,35 @@ df_firstlast = df_edited.groupby(['title', 'analytics_identifier'])['date'].agg(
 df_firstlast = df_firstlast.loc[
     (df_firstlast['first'] != df_edited['date'].min()) |
     (df_firstlast['last'] != df_edited['date'].max())
-]
+].reset_index()
+
+# %%
+# Identify organisations that might have started since the start of 2023
+df_firstlast.loc[
+    (df_firstlast['first'].str.contains('2023')) |
+    (df_firstlast['first'].str.contains('2024'))
+][['title', 'analytics_identifier', 'first']].merge(
+    df_edited[['analytics_identifier', 'date', 'superseded_organisations']],
+    how='inner',
+    left_on=['analytics_identifier', 'first'],
+    right_on=['analytics_identifier', 'date'],
+    validate='1:1',
+).drop(columns=['date']).sort_values(by='first')
+
+# %%
+# Identify organisations that might have closed since the start of 2023
+df_firstlast.loc[
+    (
+        (df_firstlast['last'].str.contains('2023')) |
+        (df_firstlast['last'].str.contains('2024'))
+    ) &
+    (df_firstlast['last'] != df_edited['date'].max())
+][['title', 'analytics_identifier', 'last']].merge(
+    df_edited[['analytics_identifier', 'date', 'superseding_organisations']],
+    how='inner',
+    left_on=['analytics_identifier', 'last'],
+    right_on=['analytics_identifier', 'date'],
+    validate='1:1',
+).drop(columns=['date']).sort_values(by='last')
+
+# %%
