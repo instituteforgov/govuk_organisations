@@ -68,6 +68,30 @@ df_edited = pd.concat([df.drop(['details'], axis=1), df['details'].apply(pd.Seri
 df_edited['title'] = df_edited['title'].str.strip()
 
 # %%
+# Fix format values
+# Organisations with analytics_identifier starting with 'D'
+# NB: Ordnanace Survey - D38 - is a public corporation, therefore probably is correctly categorised
+# as 'other'
+df_edited.loc[
+    df_edited['title'].isin([
+        'Department for Business, Energy & Industrial Strategy',
+        'Department for Digital, Culture, Media & Sport',
+        'Department for International Trade',
+        'Department for Levelling Up, Housing and Communities',
+        'Office of the Secretary of State for Scotland',
+        'Office of the Secretary of State for Wales',
+    ]),
+    'format'
+] = 'Ministerial department'
+
+df_edited.loc[
+    df_edited['title'].isin([
+        'Office for National Statistics',
+    ]),
+    'format'
+] = 'Executive office'
+
+# %%
 # Exclude format values
 df_edited = df_edited.loc[
     ~df_edited['format'].isin([
