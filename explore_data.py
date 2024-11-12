@@ -92,9 +92,10 @@ df_edited.loc[
 ] = 'Executive office'
 
 # %%
-# Exclude format values
-df_edited = df_edited.loc[
-    ~df_edited['format'].isin([
+# Add exclude flag
+df_edited['exclude'] = False
+df_edited.loc[
+    df_edited['format'].isin([
         'Civil service',
         'Court',
         'Devolved administration',
@@ -102,8 +103,9 @@ df_edited = df_edited.loc[
         'Ministerial department',
         'Sub organisation',
         'Tribunal',
-    ])
-]
+    ]),
+    'exclude'
+] = True
 
 # %%
 # Produce cross-tab of govuk_status, govuk_closed_status
@@ -138,9 +140,8 @@ df_edited.loc[
     'govuk_status'
 ] = 'live'
 
-# Assert there are no 'exempt', 'transitioning' values
+# Assert there are no 'exempt' govuk_status values
 assert df_edited['govuk_status'].ne('exempt').all()
-assert df_edited['govuk_status'].ne('transitioning').all()
 
 # %%
 # Clean up govuk_closed_status values
@@ -152,14 +153,15 @@ df_edited.loc[
 ] = pd.NA
 
 # %%
-# Exclude govuk_status values
-df_edited = df_edited.loc[
-    ~df_edited['govuk_status'].isin([
+# Flag govuk_status values for exclusion
+df_edited.loc[
+    df_edited['govuk_status'].isin([
         'closed',
         'devolved',
         'joining',
-    ])
-]
+    ]),
+    'exclude'
+] = True
 
 # %%
 # Produce cross-tab of govuk_status, govuk_closed_status
@@ -180,6 +182,7 @@ df_edited = df_edited[[
     'superseded_organisations',
     'superseding_organisations',
     'updated_at',
+    'exclude',
 ]]
 
 # %%
