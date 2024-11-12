@@ -187,15 +187,19 @@ df_edited = df_edited[[
 
 # %%
 # EXPLORE DATA
+# Exclude organisations
+df_analysis = df_edited.loc[df_edited['exclude']]
+
+# %%
 # Check 'format' values
-df_edited['format'].value_counts()
+df_analysis['format'].value_counts()
 
 # %%
 # Identify first and last appearance of organisations
-df_firstlast = df_edited.groupby(['title', 'analytics_identifier'])['date'].agg(['first', 'last'])
+df_firstlast = df_analysis.groupby(['title', 'analytics_identifier'])['date'].agg(['first', 'last'])
 df_firstlast = df_firstlast.loc[
-    (df_firstlast['first'] != df_edited['date'].min()) |
-    (df_firstlast['last'] != df_edited['date'].max())
+    (df_firstlast['first'] != df_analysis['date'].min()) |
+    (df_firstlast['last'] != df_analysis['date'].max())
 ].reset_index()
 
 # %%
@@ -204,7 +208,7 @@ df_firstlast.loc[
     (df_firstlast['first'].str.contains('2023')) |
     (df_firstlast['first'].str.contains('2024'))
 ][['title', 'analytics_identifier', 'first']].merge(
-    df_edited[['analytics_identifier', 'date', 'superseded_organisations']],
+    df_analysis[['analytics_identifier', 'date', 'superseded_organisations']],
     how='inner',
     left_on=['analytics_identifier', 'first'],
     right_on=['analytics_identifier', 'date'],
@@ -218,9 +222,9 @@ df_firstlast.loc[
         (df_firstlast['last'].str.contains('2023')) |
         (df_firstlast['last'].str.contains('2024'))
     ) &
-    (df_firstlast['last'] != df_edited['date'].max())
+    (df_firstlast['last'] != df_analysis['date'].max())
 ][['title', 'analytics_identifier', 'last']].merge(
-    df_edited[['analytics_identifier', 'date', 'superseding_organisations']],
+    df_analysis[['analytics_identifier', 'date', 'superseding_organisations']],
     how='inner',
     left_on=['analytics_identifier', 'last'],
     right_on=['analytics_identifier', 'date'],
