@@ -100,7 +100,6 @@ df_edited = df_edited.loc[
         'Devolved administration',
         'Executive office',
         'Ministerial department',
-        'Non-ministerial department',
         'Sub organisation',
         'Tribunal',
     ])
