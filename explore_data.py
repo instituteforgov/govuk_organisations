@@ -188,7 +188,7 @@ df_edited = df_edited[[
 # %%
 # EXPLORE DATA
 # Exclude organisations
-df_analysis = df_edited.loc[df_edited['exclude']]
+df_analysis = df_edited.loc[~df_edited['exclude']]
 
 # %%
 # Check 'format' values
