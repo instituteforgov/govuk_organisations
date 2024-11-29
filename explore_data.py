@@ -168,6 +168,10 @@ df_edited.loc[
 pd.crosstab(df_edited['govuk_status'], df_edited['govuk_closed_status'], dropna=False)
 
 # %%
+# Produce cross-tab of format, govuk_status
+pd.crosstab(df_edited['format'], df_edited['govuk_status'], dropna=False)
+
+# %%
 # Reorder columns
 df_edited = df_edited[[
     'date',
