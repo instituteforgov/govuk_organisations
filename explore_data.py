@@ -104,8 +104,8 @@ df_edited.loc[
         'Sub organisation',
         'Tribunal',
     ]),
-    'exclude'
-] = True
+    ['exclude', 'exclude_reason']
+] = [True, 'format']
 
 # %%
 # Produce cross-tab of govuk_status, govuk_closed_status
@@ -160,8 +160,8 @@ df_edited.loc[
         'devolved',
         'joining',
     ]),
-    'exclude'
-] = True
+    ['exclude', 'exclude_reason']
+] = [True, 'govuk_status']
 
 # %%
 # Produce cross-tab of govuk_status, govuk_closed_status
@@ -183,12 +183,18 @@ df_edited = df_edited[[
     'superseding_organisations',
     'updated_at',
     'exclude',
+    'exclude_reason',
 ]]
 
 # %%
 # EXPLORE DATA
 # Exclude organisations
-df_analysis = df_edited.loc[~df_edited['exclude']]
+df_edited = df_edited.loc[
+    ~(
+        (df_edited['exclude']) &
+        (df_edited['exclude_reason'] == 'govuk_status')
+    )
+]
 
 # %%
 # Check 'format' values
