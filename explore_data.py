@@ -17,6 +17,9 @@
 '''
 
 import pandas as pd
+from pandas.io.formats import excel
+
+from ds_utils import matching_operations as mo
 
 # %%
 # SET VARIABLES
@@ -50,13 +53,19 @@ data_urls = {
 }
 
 # %%
-# READ IN ORGANISATIONS DATA
-# Read data into dataframe
+# READ IN DATA
+# Read in GOV.UK data
 df = pd.DataFrame()
 for date, url in data_urls.items():
     data = pd.read_json(url)
     data['date'] = date
     df = pd.concat([df, data])
+
+# %%
+# Read in CO data
+df_co = pd.read_excel(
+    './temp/2024-11 - 04 - List of ALBs.xlsx'
+)
 
 # %%
 # EDIT DATA
@@ -202,23 +211,85 @@ df_edited = df_edited.loc[
 
 # %%
 # Check 'format' values
-df_analysis['format'].value_counts()
+df_edited['format'].value_counts()
 
 # %%
 # Identify first and last appearance of organisations
-df_firstlast = df_analysis.groupby(['title', 'analytics_identifier'])['date'].agg(['first', 'last'])
-df_firstlast = df_firstlast.loc[
-    (df_firstlast['first'] != df_analysis['date'].min()) |
-    (df_firstlast['last'] != df_analysis['date'].max())
-].reset_index()
+# NB: 'exclude' is included as a column here. Not doing so results in some side effects for
+# organisations that change format, to/from a type that we exclude
+df_firstlast = df_edited\
+    .groupby(['title', 'analytics_identifier', 'exclude', 'exclude_reason'], dropna=False)['date']\
+    .agg(['first', 'last'])\
+    .reset_index()
+
+# %%
+df_firstlast
+
+# %% Identify excluded organisations
+# NB: This uses the last appearance of an organisation, as that is expected to have more
+# accurate information
+df_excluded = df_firstlast[['title', 'analytics_identifier', 'first', 'last']].merge(
+    df_edited.loc[
+        df_edited['exclude']
+    ][[
+        'analytics_identifier',
+        'date',
+        'format',
+        'govuk_status',
+        'govuk_closed_status',
+        'superseded_organisations',
+        'superseding_organisations'
+    ]],
+    how='inner',
+    left_on=['analytics_identifier', 'last'],
+    right_on=['analytics_identifier', 'date'],
+    validate='1:1',
+)
+
+df_excluded.loc[
+    df_excluded['first'] == df_edited['date'].min(),
+    'first'
+] = pd.NA
+df_excluded.loc[
+    df_excluded['last'] == df_edited['date'].max(),
+    'last'
+] = pd.NA
+
+# Reorder and rename columns
+df_excluded = df_excluded[[
+    'title',
+    'analytics_identifier',
+    'format',
+    'govuk_status',
+    'govuk_closed_status',
+    'first',
+    'last',
+    'date',
+    'superseded_organisations',
+    'superseding_organisations'
+]].rename(columns={
+    'first': 'first_appearance',
+    'last': 'last_appearance',
+    'date': 'data_as_at'
+})
 
 # %%
 # Identify organisations that might have started since the start of 2023
-df_firstlast.loc[
+df_possibleneworgs = df_firstlast.loc[
     (df_firstlast['first'].str.contains('2023')) |
     (df_firstlast['first'].str.contains('2024'))
 ][['title', 'analytics_identifier', 'first']].merge(
-    df_analysis[['analytics_identifier', 'date', 'superseded_organisations']],
+    df_edited.loc[
+        ~df_edited['exclude']
+    ][[
+        'analytics_identifier',
+        'date',
+        'format',
+        'govuk_status',
+        'govuk_closed_status',
+        'superseded_organisations',
+        'superseding_organisations'
+    ]],
     how='inner',
     left_on=['analytics_identifier', 'first'],
     right_on=['analytics_identifier', 'date'],
@@ -227,18 +298,80 @@ df_firstlast.loc[
 
 # %%
 # Identify organisations that might have closed since the start of 2023
-df_firstlast.loc[
+df_possibleclosedorgs = df_firstlast.loc[
     (
         (df_firstlast['last'].str.contains('2023')) |
         (df_firstlast['last'].str.contains('2024'))
     ) &
-    (df_firstlast['last'] != df_analysis['date'].max())
+    (df_firstlast['last'] != df_edited['date'].max())
 ][['title', 'analytics_identifier', 'last']].merge(
-    df_analysis[['analytics_identifier', 'date', 'superseding_organisations']],
+    df_edited.loc[
+        ~df_edited['exclude']
+    ][[
+        'analytics_identifier',
+        'date',
+        'format',
+        'govuk_status',
+        'govuk_closed_status',
+        'superseded_organisations',
+        'superseding_organisations'
+    ]],
     how='inner',
     left_on=['analytics_identifier', 'last'],
     right_on=['analytics_identifier', 'date'],
     validate='1:1',
 ).drop(columns=['date']).sort_values(by='last')
+
+# %%
+# Compare our list of organisations to CO list
+df_live = df_firstlast[['title', 'analytics_identifier', 'last']].merge(
+    df_edited.loc[
+        ~df_edited['exclude']
+    ][[
+        'analytics_identifier',
+        'date',
+        'format',
+        'govuk_status',
+        'govuk_closed_status',
+        'superseded_organisations',
+        'superseding_organisations'
+    ]],
+    how='inner',
+    left_on=['analytics_identifier', 'last'],
+    right_on=['analytics_identifier', 'date'],
+    validate='1:1',
+).drop(columns=['date']).sort_values(by='title')
+
+# %%
+df_merge = mo.fuzzy_merge(
+    df_live,
+    df_co,
+    column_left='title',
+    column_right='overall_organisation',
+    drop_na=False,
+    score_cutoff=90,
+)
+
+# %%
+# Look for organisations in the CO list not matched to the GOV.UK list
+df_co_nomatch = df_co.loc[
+    ~df_co['overall_organisation'].isin(df_merge['overall_organisation'])
+]
+
+# %%
+df_co_nomatch
+
+# %%
+# EXPORT DATA
+# Export data
+excel.ExcelFormatter.header_style = None
+
+with pd.ExcelWriter("./temp/Comparison of GOV.UK, CO lists.xlsx") as writer:
+
+    df_edited.to_excel(writer, sheet_name='Full GOV.UK list', index=False)
+    df_excluded.to_excel(writer, sheet_name='Excluded orgs', index=False)
+    df_possibleneworgs.to_excel(writer, sheet_name='Possible new orgs', index=False)
+    df_possibleclosedorgs.to_excel(writer, sheet_name='Possible closed orgs', index=False)
+    df_merge.to_excel(writer, sheet_name='Comparison of GOV.UK, CO lists', index=True)
 
 # %%
