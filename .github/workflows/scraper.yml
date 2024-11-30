@@ -1,7 +1,6 @@
 name: Extract gov.uk organisations data
 
 on:
-  push:
   workflow_dispatch:
   schedule:
     - cron:  '0 6 1 * *'    # At 06:00 UTC on day-of-month 1
