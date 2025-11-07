@@ -2,7 +2,7 @@
 # #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-'''
+"""
     Purpose
         Explore gov.uk organisations API
     Inputs
@@ -13,7 +13,7 @@
         None
     Notes
         None
-'''
+"""
 
 import json
 
@@ -21,8 +21,8 @@ import requests
 
 # %%
 # Prepare to call API
-url_stub = 'https://www.gov.uk/api/organisations?page='
-headers = {'accept': 'application/json'}
+url_stub = "https://www.gov.uk/api/organisations?page="
+headers = {"accept": "application/json"}
 
 
 def call_api(url_stub, page_number, headers):
@@ -30,10 +30,10 @@ def call_api(url_stub, page_number, headers):
     r = requests.get(url, headers=headers)
 
     if r.ok:
-        record_list.extend(r.json()['results'])
+        record_list.extend(r.json()["results"])
 
     try:
-        if r.json()['next_page_url']:
+        if r.json()["next_page_url"]:
             page_number += 1
             call_api(url_stub, page_number, headers)
     except KeyError:
@@ -51,7 +51,7 @@ call_api(url_stub, page_number, headers)
 
 # %%
 # Save output
-with open('organisations.json', 'w') as f:
+with open("organisations.json", "w") as f:
     json.dump(record_list, f)
 
 # %%
