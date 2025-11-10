@@ -1,12 +1,11 @@
 #%%
 # Set URL address and read in JSON
 import pandas as pd
-url = "https://raw.githubusercontent.com/instituteforgov/govuk_organisations/refs/heads/main/organisations.json"
 
-df = pd.read_json(url)
+df = pd.read_json("organisations.json")
 
 # %%
-#Flatten "details" column
+# Flatten "details" column
 df_edited = pd.concat(
     [df.drop(columns = ["details"]), df["details"].apply(pd.Series)], axis=1
     )
