@@ -3,7 +3,7 @@ name: Extract gov.uk organisations data
 on:
   workflow_dispatch:
   schedule:
-    - cron:  '0 6 1 * *'    # At 06:00 UTC on day-of-month 1
+    - cron:  '0 6 * * *'    # At 06:00 UTC daily
 
 jobs:
   scrape-govuk-organisations:
