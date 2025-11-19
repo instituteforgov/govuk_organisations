@@ -1,5 +1,5 @@
 #%%
-# Set URL address and read in JSON
+# Read in data
 import pandas as pd
 
 df = pd.read_json("organisations.json")
@@ -21,3 +21,4 @@ dropped_cols = [
 df_edited = df_edited.drop(columns = dropped_cols)
 
 # %%
+df_edited[['start_date', 'end_date']] = [None, None]
