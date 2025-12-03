@@ -1,8 +1,10 @@
 # %%
 import pandas as pd
 import os
+import uuid
 from sqlalchemy import NVARCHAR
 from sqlalchemy.dialects.mssql import BIT, DATE
+from sqlalchemy import text
 import ds_utils.database_operations as dbo
 
 # %%
@@ -15,6 +17,7 @@ df = pd.read_json("organisations.json")
 df_edited = pd.concat(
     [df.drop(columns=["details"]), df["details"].apply(pd.Series)], axis=1
     )
+
 # %%
 # Remove redundant columns
 dropped_cols = [
@@ -26,7 +29,13 @@ dropped_cols = [
 df_edited = df_edited.drop(columns=dropped_cols)
 
 # %%
+# Creat start and end date columns
 df_edited[['start_date', 'end_date']] = [None, None]
+
+# %% 
+# Add UUID column
+
+df_edited.insert(0, 'uuid', [uuid.uuid4() for _ in range(len(df))])
 
 # %%
 # Connect to database
