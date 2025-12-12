@@ -4,6 +4,7 @@ import os
 import uuid
 from sqlalchemy import NVARCHAR, Uuid
 from sqlalchemy.dialects.mssql import DATE
+from sqlalchemy.exc import NoSuchTableError
 import ds_utils.database_operations as dbo
 
 # %%
@@ -49,8 +50,18 @@ engine = dbo.connect_sql_db(
 )
 
 # %%
-# Create table in DB if it doesn't exist, otherwise skip
+# Read 'govuk_orgs' table and write to DataFrame, unless it doesn't exist, in which case write it from JSON data
+
 try:
+    df_sql = pd.read_sql_table(
+        table_name='govuk_orgs',
+        con=engine,
+        schema='testing',
+        parse_dates=[
+            'closed_at', 'start_date', 'end_date'
+        ]
+    )
+except NoSuchTableError:
     df_edited.to_sql(
         name='govuk_orgs',
         schema='testing',
@@ -60,16 +71,14 @@ try:
         dtype={
             'uuid': Uuid,
             'id': NVARCHAR(200),
-            'title': NVARCHAR(200),
-            'format': NVARCHAR(100),
+            'title': NVARCHAR(100),
+            'format': NVARCHAR(50),
             'web_url': NVARCHAR(200),
-            'analytics_identifier': NVARCHAR(100),
-            'closed_at': DATE,
+            'analytics_identifier': NVARCHAR(20),
+            'closed_at': NVARCHAR(100),
             'govuk_status': NVARCHAR(100),
             'govuk_closed_status': NVARCHAR(100),
             'start_date': DATE,
             'end_date': DATE
         }
     )
-except ValueError:
-    pass
