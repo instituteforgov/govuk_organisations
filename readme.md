@@ -1,7 +1,17 @@
-**Journocoders October 2022**
+# GOV.UK Organisations - Data and analytics #
 
-Tutorials:
-* https://medium.com/@lassebenninga/setup-free-webscraping-in-less-than-5-minutes-using-github-actions-330e1151fbea
-* https://yasoob.me/posts/github-actions-web-scraper-schedule-tutorial/#getting-started-with-github-action
+Scripts to extract data from the GOV.UK 'Organisations' API and writing it to a database.
 
-Results: https://flatgithub.com/philipnye/journocoders-github-actions/blob/main/organisations.json
+### Data ###
+
+The plaintext information is available at the ['Departments, agencies and public bodies'](https://www.gov.uk/government/organisations) webpage. The scripts use data drawn from the [API](https://www.gov.uk/api/organisations).
+
+### Extracting data ### 
+
+`extract_data.py` downloads data from the API as a JSON file once daily using GitHub [actions]()
+
+### Databases ###
+
+`orgs_database.py` (when complete) will write the latest API data to a `SQL` table, compare it to the previous version, and highlight any changes - such as new organisations, mergers, abolitions. etc.
+
+### TBC... ####
