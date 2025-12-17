@@ -82,3 +82,9 @@ except NoSuchTableError:
             'end_date': DATE
         }
     )
+
+# %%
+# Concatenate SQL and JSON Dataframes to allow comparison
+
+df_joint = pd.concat([df_edited, df_sql])
+
