@@ -1,6 +1,6 @@
 # GOV.UK Organisations - Data and analytics #
 
-Scripts to extract data from the GOV.UK 'Organisations' API and writing it to a database.
+Scripts to extract data from the GOV.UK 'Organisations' API and write it to a database.
 
 ### Data ###
 
