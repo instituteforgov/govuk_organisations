@@ -8,7 +8,7 @@ The plaintext information is available at the ['Departments, agencies and public
 
 ### Extracting data ### 
 
-`extract_data.py` downloads data from the API as a JSON file once daily using GitHub [actions]()
+`extract_data.py` downloads data from the API as a JSON file once daily using GitHub [actions](https://github.com/features/actions).
 
 ### Databases ###
 
