@@ -10,7 +10,7 @@ import ds_utils.database_operations as dbo
 # %%
 # Read in data
 
-df = pd.read_json("organisations.json")
+df = pd.read_json('organisations.json')
 
 # %%
 # Flatten "details" column
@@ -29,11 +29,16 @@ dropped_cols = [
 df_edited = df_edited.drop(columns=dropped_cols)
 
 # %%
+# Remove any duplicate rows
+
+df_edited = df_edited.drop_duplicates(ignore_index=True)
+
+# %%
 # Add a UUID column
 df_edited.insert(0, 'uuid', [uuid.uuid4() for _ in range(len(df_edited))])
 
 # %%
-# Creat start and end date columns
+# Create start and end date columns
 df_edited[['start_date', 'end_date']] = [None, None]
 
 # %%
@@ -84,7 +89,15 @@ except NoSuchTableError:
     )
 
 # %%
-# Concatenate SQL and JSON Dataframes to allow comparison
+# Vertically join SQL and JSON dataframes to allow comparison
 
-df_joint = pd.concat([df_edited, df_sql])
+df_joint = pd.concat([df_edited, df_sql], ignore_index=True)
 
+# %%
+# Drop duplicates from df_joint (not considering UUID columns, which is different
+# by default for equivalent entries in df_edited and df_sql)
+
+columns = ['id', 'title', 'format', 'web_url', 'analytics_identifier', 'closed_at',
+           'govuk_status', 'govuk_closed_status', 'start_date', 'end_date']
+
+df_changes = df_joint.drop_duplicates(subset=columns, keep=False)
