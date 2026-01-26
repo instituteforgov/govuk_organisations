@@ -6,14 +6,14 @@ on:
     - cron:  '0 6 * * *'    # At 06:00 UTC daily
 
 jobs:
-  scrape-govuk-organisations:
+  extract-govuk-organisations:
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2.2.1
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - name: Install requirements
