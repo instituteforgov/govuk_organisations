@@ -112,3 +112,39 @@ df_new = df_edited[
 df_removed = df_sql[
     ~df_sql['title'].isin(df_edited['title'])
 ]
+
+# %%
+
+# %%
+# Track what's changed from df_sql to df_edited
+
+df_merged = df_sql.merge(
+    df_edited,
+    on="analytics_identifier",
+    how="inner",
+    suffixes=("_old", "_new")
+)
+
+change_columns = ['id', 'title', 'format', 'web_url', 'closed_at', 'govuk_status', 'govuk_closed_status']
+
+mask = False
+for col in change_columns:
+    mask |= df_merged[f"{col}_old"].fillna("NA") != df_merged[f"{col}_new"].fillna("NA")
+
+df_changed = df_merged[mask]  # This is similar to df_changes above but has info on old and new - joined horizontally not vertically
+
+log = []
+for col in change_columns:
+    diff = df_changed[
+        df_changed[f"{col}_old"] != df_changed[f"{col}_new"]
+    ]
+
+    for _, row in diff.iterrows():
+        log.append({
+            "analytics_identifier": row["analytics_identifier"],
+            "field": col,
+            "old_value": row[f"{col}_old"],
+            "new_value": row[f"{col}_new"]
+        })
+
+df_record_changes = pd.DataFrame(log)  # Sense check: len(df_changes) = len(df_record_changes)
