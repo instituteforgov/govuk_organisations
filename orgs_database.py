@@ -94,10 +94,21 @@ except NoSuchTableError:
 df_joint = pd.concat([df_edited, df_sql], ignore_index=True)
 
 # %%
-# Drop duplicates from df_joint (not considering UUID columns, which is different
-# by default for equivalent entries in df_edited and df_sql)
+# Drop duplicates from df_joint, i.e. drop rows which are identical in df_sql and df_edited
+# (not inc. UUID which is different for both by default)
 
 columns = ['id', 'title', 'format', 'web_url', 'analytics_identifier', 'closed_at',
            'govuk_status', 'govuk_closed_status', 'start_date', 'end_date']
 
 df_changes = df_joint.drop_duplicates(subset=columns, keep=False)
+
+# %%
+# Find new and removed organisations by title
+
+df_new = df_edited[
+    ~df_edited['title'].isin(df_sql['title'])
+]
+
+df_removed = df_sql[
+    ~df_sql['title'].isin(df_edited['title'])
+]
