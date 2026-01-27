@@ -114,8 +114,6 @@ df_removed = df_sql[
 ]
 
 # %%
-
-# %%
 # Track what's changed from df_sql to df_edited
 
 df_merged = df_sql.merge(
@@ -147,4 +145,5 @@ for col in change_columns:
             "new_value": row[f"{col}_new"]
         })
 
-df_record_changes = pd.DataFrame(log)  # Sense check: len(df_changes) = len(df_record_changes)
+
+df_record_changes = pd.DataFrame(log)  # Sense check: len(df_changes) == len(df_record_changes)
