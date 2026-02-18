@@ -21,9 +21,9 @@ df_edited = pd.concat(
 # %%
 # Remove redundant columns
 dropped_cols = [
-    "updated_at", "parent_organisations", "child_organisations", "superseded_organisations", "superseding_organisations",
+    "id", "updated_at", "parent_organisations", "child_organisations", "superseded_organisations", "superseding_organisations",
     "slug", "abbreviation", "logo_formatted_name", "organisation_brand_colour_class_name",
-    "organisation_logo_type_class_name", "content_id"
+    "organisation_logo_type_class_name", "closed_at", "govuk_closed_status", "content_id"
 ]
 
 df_edited = df_edited.drop(columns=dropped_cols)
@@ -42,6 +42,27 @@ df_edited.insert(0, 'uuid', [uuid.uuid4() for _ in range(len(df_edited))])
 df_edited[['start_date', 'end_date']] = [None, None]
 
 # %%
+# Edit URL column, rename and reorder columns
+
+df_edited['web_url'] = df_edited['web_url'].str.replace(
+    'https://www.gov.uk/government/organisations/', '', regex=False
+    )
+
+new_names = {
+    'uuid': 'id',
+    'analytics_identifier': 'govuk_identifier',
+    'title': 'name',
+    'web_url': 'url_name',
+    'format': 'type'
+}
+
+column_order = [
+    'id', 'govuk_identifier', 'name', 'url_name', 'type', 'govuk_status', 'start_date', 'end_date'
+    ]
+
+df_edited = df_edited.rename(columns=new_names).reindex(columns=column_order)
+
+# %%
 # Create connection to database
 engine = dbo.connect_sql_db(
     driver="pyodbc",
@@ -56,6 +77,8 @@ engine = dbo.connect_sql_db(
 
 # %%
 # Read 'govuk_orgs' table and write to DataFrame, unless it doesn't exist, in which case write it to DB from JSON data
+# NOTE: Now that the columns have been edited, the SQL DB will need updating - df_edited and
+# df_sql currently have different columns and so comparison between them is not possible
 
 try:
     df_sql = pd.read_sql_table(
@@ -96,6 +119,8 @@ df_joint = pd.concat([df_edited, df_sql], ignore_index=True)
 # %%
 # Drop duplicates from df_joint, i.e. drop rows which are identical in df_sql and df_edited
 # (not inc. UUID which is different for both by default)
+# NOTE: This won't work with these columns.
+# NOTE 2: Maybe this code is unnecessary now
 
 columns = ['id', 'title', 'format', 'web_url', 'analytics_identifier', 'closed_at',
            'govuk_status', 'govuk_closed_status', 'start_date', 'end_date']
@@ -112,6 +137,8 @@ df_new = df_edited[
 df_removed = df_sql[
     ~df_sql['title'].isin(df_edited['title'])
 ]
+
+df_removed
 
 # %%
 # Track what's changed from df_sql to df_edited
@@ -133,11 +160,11 @@ df_changed = df_merged[mask]  # This is similar to df_changes above but has info
 
 log = []
 for col in change_columns:
-    diff = df_changed[
+    differences = df_changed[
         df_changed[f"{col}_old"] != df_changed[f"{col}_new"]
     ]
 
-    for _, row in diff.iterrows():
+    for _, row in differences.iterrows():
         log.append({
             "analytics_identifier": row["analytics_identifier"],
             "field": col,
@@ -146,4 +173,6 @@ for col in change_columns:
         })
 
 
-df_record_changes = pd.DataFrame(log)  # Sense check: len(df_changes) == len(df_record_changes)
+df_record_changes = pd.DataFrame(log)
+
+df_record_changes
