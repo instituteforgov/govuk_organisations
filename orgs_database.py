@@ -135,14 +135,11 @@ except NoSuchTableError:
 # %%
 # Merge to find matches and replace new UUID with old where match exists
 
-# Merge to identify matches and get old UUIDs
 df_merged = df_edited.merge(
-    df_sql[['govuk_identifier', 'id']],  # Just need the old id
+    df_sql[['govuk_identifier', 'id']],
     on='govuk_identifier',
     how='left',
     suffixes=('_new', '_old')
 )
 
 df_edited['id'] = df_merged['id_old'].fillna(df_merged['id_new'])
-df_edited
-# %%
