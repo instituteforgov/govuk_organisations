@@ -76,9 +76,30 @@ engine = dbo.connect_sql_db(
 )
 
 # %%
+# Overwrite DB with more recent data
+
+"""
+df_edited.to_sql(
+    name='govuk_orgs',
+    con=engine,
+    schema='testing',
+    if_exists='replace',
+    index=False,
+    dtype={
+        'id': Uuid,
+        'govuk_identifier': NVARCHAR(20),
+        'name': NVARCHAR(100),
+        'url_name': NVARCHAR(200),
+        'type': NVARCHAR(50),
+        'govuk_status': NVARCHAR(100),
+        'start_date': DATE,
+        'end_date': DATE
+    }
+)
+"""
+# %%
 # Read 'govuk_orgs' table and write to DataFrame, unless it doesn't exist, in which case write it to DB from JSON data
-# NOTE: Now that the columns have been edited, the SQL DB will need updating - df_edited and
-# df_sql currently have different columns and so comparison between them is not possible
+# NOTE: All code below refers to old column names so won't run - fix later when next steps decided
 
 try:
     df_sql = pd.read_sql_table(
@@ -112,67 +133,16 @@ except NoSuchTableError:
     )
 
 # %%
-# Vertically join SQL and JSON dataframes to allow comparison
+# Merge to find matches and replace new UUID with old where match exists
 
-df_joint = pd.concat([df_edited, df_sql], ignore_index=True)
-
-# %%
-# Drop duplicates from df_joint, i.e. drop rows which are identical in df_sql and df_edited
-# (not inc. UUID which is different for both by default)
-# NOTE: This won't work with these columns.
-# NOTE 2: Maybe this code is unnecessary now
-
-columns = ['id', 'title', 'format', 'web_url', 'analytics_identifier', 'closed_at',
-           'govuk_status', 'govuk_closed_status', 'start_date', 'end_date']
-
-df_changes = df_joint.drop_duplicates(subset=columns, keep=False)
-
-# %%
-# Find new and removed organisations by title
-
-df_new = df_edited[
-    ~df_edited['title'].isin(df_sql['title'])
-]
-
-df_removed = df_sql[
-    ~df_sql['title'].isin(df_edited['title'])
-]
-
-df_removed
-
-# %%
-# Track what's changed from df_sql to df_edited
-
-df_merged = df_sql.merge(
-    df_edited,
-    on="analytics_identifier",
-    how="inner",
-    suffixes=("_old", "_new")
+# Merge to identify matches and get old UUIDs
+df_merged = df_edited.merge(
+    df_sql[['govuk_identifier', 'id']],  # Just need the old id
+    on='govuk_identifier',
+    how='left',
+    suffixes=('_new', '_old')
 )
 
-change_columns = ['id', 'title', 'format', 'web_url', 'closed_at', 'govuk_status', 'govuk_closed_status']
-
-mask = False
-for col in change_columns:
-    mask |= df_merged[f"{col}_old"].fillna("NA") != df_merged[f"{col}_new"].fillna("NA")
-
-df_changed = df_merged[mask]  # This is similar to df_changes above but has info on old and new - joined horizontally not vertically
-
-log = []
-for col in change_columns:
-    differences = df_changed[
-        df_changed[f"{col}_old"] != df_changed[f"{col}_new"]
-    ]
-
-    for _, row in differences.iterrows():
-        log.append({
-            "analytics_identifier": row["analytics_identifier"],
-            "field": col,
-            "old_value": row[f"{col}_old"],
-            "new_value": row[f"{col}_new"]
-        })
-
-
-df_record_changes = pd.DataFrame(log)
-
-df_record_changes
+df_edited['id'] = df_merged['id_old'].fillna(df_merged['id_new'])
+df_edited
+# %%
