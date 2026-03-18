@@ -4,7 +4,6 @@ import os
 import uuid
 from sqlalchemy import NVARCHAR, Uuid
 from sqlalchemy.dialects.mssql import DATE
-from sqlalchemy.exc import NoSuchTableError
 import ds_utils.database_operations as dbo
 
 # %%
@@ -76,9 +75,32 @@ engine = dbo.connect_sql_db(
 )
 
 # %%
-# Overwrite DB with more recent data
+# Read 'govuk_orgs' table and write to DataFrame
 
-"""
+df_sql = pd.read_sql_table(
+    table_name='govuk_orgs',
+    con=engine,
+    schema='testing',
+    parse_dates=[
+        'start_date', 'end_date'
+        ]
+    )
+
+# %%
+# Merge to find matches and replace new UUID with old where match exists
+
+df_merged = df_edited.merge(
+    df_sql[['govuk_identifier', 'id']],
+    on='govuk_identifier',
+    how='left',
+    suffixes=('_new', '_old')
+)
+
+df_edited['id'] = df_merged['id_old'].fillna(df_merged['id_new'])
+
+# %%
+# Push df_edited (with correct UUIDs) back to SQL db
+
 df_edited.to_sql(
     name='govuk_orgs',
     con=engine,
@@ -96,50 +118,3 @@ df_edited.to_sql(
         'end_date': DATE
     }
 )
-"""
-# %%
-# Read 'govuk_orgs' table and write to DataFrame, unless it doesn't exist, in which case write it to DB from JSON data
-# NOTE: All code below refers to old column names so won't run - fix later when next steps decided
-
-try:
-    df_sql = pd.read_sql_table(
-        table_name='govuk_orgs',
-        con=engine,
-        schema='testing',
-        parse_dates=[
-            'start_date', 'end_date'
-        ]
-    )
-except NoSuchTableError:
-    df_edited.to_sql(
-        name='govuk_orgs',
-        schema='testing',
-        con=engine,
-        if_exists='fail',
-        index=False,
-        dtype={
-            'uuid': Uuid,
-            'id': NVARCHAR(200),
-            'title': NVARCHAR(100),
-            'format': NVARCHAR(50),
-            'web_url': NVARCHAR(200),
-            'analytics_identifier': NVARCHAR(20),
-            'closed_at': NVARCHAR(100),
-            'govuk_status': NVARCHAR(100),
-            'govuk_closed_status': NVARCHAR(100),
-            'start_date': DATE,
-            'end_date': DATE
-        }
-    )
-
-# %%
-# Merge to find matches and replace new UUID with old where match exists
-
-df_merged = df_edited.merge(
-    df_sql[['govuk_identifier', 'id']],
-    on='govuk_identifier',
-    how='left',
-    suffixes=('_new', '_old')
-)
-
-df_edited['id'] = df_merged['id_old'].fillna(df_merged['id_new'])
