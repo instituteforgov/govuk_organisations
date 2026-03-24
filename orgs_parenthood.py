@@ -2,6 +2,7 @@
 import pandas as pd
 import os
 import ds_utils.database_operations as dbo
+import utils
 
 # %%
 # Read orgs file, drop cols and filter out childless/parentless orgs
@@ -38,15 +39,13 @@ df_sql = pd.read_sql_table(
     table_name='govuk_orgs',
     con=engine,
     schema='testing',
-    columns=['id', 'govuk_identifier']
     )
-
 
 # %%
 # Merge on govuk_identifier
 
 df_merged = df.merge(
-    df_sql,
+    df_sql[['id', 'govuk_identifier']],
     on='govuk_identifier',
     how='inner'
 )
@@ -59,16 +58,62 @@ df_merged = df_merged.reindex(columns=order)
 
 df_hasparents = df_merged[
     df['parent_organisations'].apply(lambda x: isinstance(x, list) and len(x) > 0)
-    ]
+    ].drop(columns=['child_organisations'])
 
 df_haschildren = df_merged[
     df['child_organisations'].apply(lambda x: isinstance(x, list) and len(x) > 0)
-]
+].drop(columns=['parent_organisations'])
 
 # %%
-"""
-Next steps: how to flatten parent/child_organisations columns
-Extract UUIDs of parent/child_orgs from df_sql
-Add to a new df with columns = [id, parent_id, child_id]
-Query: one row per org, or same org in multiple rows (e.g. more than one parent/child)?
-"""
+
+utils.flatten_list_of_dicts(
+    df_hasparents,
+    'parent_organisations',
+    'id'
+    )
+
+utils.flatten_list_of_dicts(
+    df_haschildren,
+    'child_organisations',
+    'id'
+    )
+
+# %%
+# Strip the url paths from parent/child_organisations to leave url_name, then map url_name to relevant UUID from df_sql
+
+utils.remove_prefixes(
+    df=df_hasparents,
+    col='parent_organisations',
+    prefix='https://www.gov.uk/api/organisations/'
+)
+
+utils.remove_prefixes(
+    df=df_haschildren,
+    col='child_organisations',
+    prefix='https://www.gov.uk/api/organisations/'
+)
+
+utils.match_and_replace(
+    df1=df_sql,
+    df2=df_hasparents,
+    edit_col='parent_organisations',
+    key_col='url_name',
+    val_col='id'
+)
+
+utils.match_and_replace(
+    df1=df_sql,
+    df2=df_haschildren,
+    edit_col='child_organisations',
+    key_col='url_name',
+    val_col='id'
+)
+
+# %%
+# Merge formatted DataFrames to create table of organisation links
+
+df_link = df_hasparents.merge(
+    right=df_haschildren,
+    how='outer',
+    on=['id', 'govuk_identifier']
+)
