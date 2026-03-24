@@ -17,15 +17,11 @@ def flatten_list_of_dicts(df: pd.DataFrame, col: str, key: str) -> pd.DataFrame:
         - col: columns of the dataframe containing lists of dicts
         - key: The key shared across all dicts in the column
 
-    Returns:
-        - df: Original DataFrame with formatted column
     """
 
     df[col] = df[col].apply(
         lambda x: [item[key] for item in x]
     )
-
-    return df
 
 
 def remove_prefixes(df: pd.DataFrame, col: str, prefix: str) -> pd.DataFrame:
@@ -39,15 +35,11 @@ def remove_prefixes(df: pd.DataFrame, col: str, prefix: str) -> pd.DataFrame:
         - col: Column of df comprising lists of strings
         - prefix: String prefix/substring to be removed
 
-    Returns:
-        - df: Oringinal DataFrame with formatted col
     """
 
     df[col] = df[col].apply(
         lambda lst: [x.replace(prefix, '') for x in lst if prefix in x]
     )
-
-    return df
 
 
 def match_and_replace(
@@ -68,13 +60,9 @@ def match_and_replace(
         - key_col: The column in df1 matching edit_col
         - val_col: The column in df1 containing the info to copy
 
-    Returns:
-        - df2
     """
 
     name_to_id = dict(zip(df1[key_col], df1[val_col]))
     df2[edit_col] = df2[edit_col].apply(
         lambda lst: [name_to_id.get(name) for name in lst]
     )
-
-    return df2
