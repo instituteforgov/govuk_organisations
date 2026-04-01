@@ -27,7 +27,7 @@ def flatten_list_of_dicts(df: pd.DataFrame, col: str, key: str) -> pd.DataFrame:
 def remove_prefixes(df: pd.DataFrame, col: str, prefix: str) -> pd.DataFrame:
 
     """
-    Get rid of a prefix substring from a column containing lists of strings
+    Get rid of a substring from a column containing lists of strings
     E.g., [https://www.gov.uk/api/organisations/ministy_of_justice] -> [ministry_of_justice]
 
     Parameters:
@@ -45,7 +45,8 @@ def remove_prefixes(df: pd.DataFrame, col: str, prefix: str) -> pd.DataFrame:
 def match_and_replace(
         df1: pd.DataFrame,
         df2: pd.DataFrame,
-        edit_col: str, key_col: str,
+        edit_col: str,
+        key_col: str,
         val_col: str
         ) -> pd.DataFrame:
     """
