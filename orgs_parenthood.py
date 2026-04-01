@@ -3,6 +3,8 @@ import pandas as pd
 import os
 import ds_utils.database_operations as dbo
 import utils
+import uuid
+from sqlalchemy import Uuid
 
 # %%
 # Read orgs file, drop cols and filter out childless/parentless orgs
@@ -54,66 +56,53 @@ order = ['id', 'govuk_identifier', 'parent_organisations', 'child_organisations'
 df_merged = df_merged.reindex(columns=order)
 
 # %%
-# Filter for orgs with non-empty parent/child org columns
+# Filter for orgs with non-empty child org columns and edit
 
-df_hasparents = df_merged[
-    df['parent_organisations'].apply(lambda x: isinstance(x, list) and len(x) > 0)
-    ].drop(columns=['child_organisations'])
-
-df_haschildren = df_merged[
+df_sponsor = df_merged[
     df['child_organisations'].apply(lambda x: isinstance(x, list) and len(x) > 0)
 ].drop(columns=['parent_organisations'])
 
-# %%
-
+# Edit columns
 utils.flatten_list_of_dicts(
-    df_hasparents,
-    'parent_organisations',
-    'id'
-    )
-
-utils.flatten_list_of_dicts(
-    df_haschildren,
+    df_sponsor,
     'child_organisations',
     'id'
     )
 
-# %%
-# Strip the url paths from parent/child_organisations to leave url_name, then map url_name to relevant UUID from df_sql
-
 utils.remove_prefixes(
-    df=df_hasparents,
-    col='parent_organisations',
-    prefix='https://www.gov.uk/api/organisations/'
-)
-
-utils.remove_prefixes(
-    df=df_haschildren,
+    df=df_sponsor,
     col='child_organisations',
     prefix='https://www.gov.uk/api/organisations/'
 )
 
 utils.match_and_replace(
     df1=df_sql,
-    df2=df_hasparents,
-    edit_col='parent_organisations',
-    key_col='url_name',
-    val_col='id'
-)
-
-utils.match_and_replace(
-    df1=df_sql,
-    df2=df_haschildren,
+    df2=df_sponsor,
     edit_col='child_organisations',
     key_col='url_name',
     val_col='id'
 )
 
-# %%
-# Merge formatted DataFrames to create table of organisation links
+df_sponsor = df_sponsor.rename(
+    columns={'id': 'parent_org_id',
+             'child_organisations': 'child_org_id'})
 
-df_link = df_hasparents.merge(
-    right=df_haschildren,
-    how='outer',
-    on=['id', 'govuk_identifier']
+df_sponsor = df_sponsor.explode('child_org_id').reset_index(drop=True).drop(columns=['govuk_identifier'])
+
+df_sponsor.insert(0, 'id', [uuid.uuid4() for x in range(len(df_sponsor))])
+
+# %%
+# Push to database
+
+df_sponsor.to_sql(
+    name='orgs_sponsorship',
+    con=engine,
+    schema='testing',
+    if_exists='replace',
+    index=False,
+    dtype={
+        'id': Uuid,
+        'parent_org_id': Uuid,
+        'child_or_id': Uuid
+    }
 )
