@@ -10,8 +10,10 @@ The plaintext information is available at the ['Departments, agencies and public
 
 `extract_data.py` downloads data from the API as a JSON file once daily using GitHub [actions](https://github.com/features/actions).
 
-## Databases
+## Database tables
 
-`orgs_database.py` (when complete) will write the latest API data to a `SQL` table, compare it to the previous version, and highlight any changes - such as new organisations, mergers, abolitions. etc.
+`orgs_database.py` edits the JSON data and writes it to a SQL database table.
+
+`orgs_parenthood.py` uses the data in the the organisations table to a table of parent organisations IDs and the IDs of their child organisations. (For example, the MoJ is the parent organisation of HM Prison and Probation Service.)
 
 ## TBC...
